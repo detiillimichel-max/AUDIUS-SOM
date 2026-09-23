@@ -1,5 +1,5 @@
 const DB_NAME = "audius-som";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = {
   CATALOG_BLOCKS: "catalog_blocks",
@@ -59,6 +59,12 @@ export function openAudiusDB() {
 
       if (!db.objectStoreNames.contains(STORES.SETTINGS)) {
         db.createObjectStore(STORES.SETTINGS, { keyPath: "key" });
+      }
+
+      // Migração v2: descarta somente o catálogo rotativo.
+      // Favoritos, playlists, histórico e configurações permanecem intactos.
+      if (request.oldVersion < 2 && db.objectStoreNames.contains(STORES.CATALOG_BLOCKS)) {
+        request.transaction.objectStore(STORES.CATALOG_BLOCKS).clear();
       }
     };
 
