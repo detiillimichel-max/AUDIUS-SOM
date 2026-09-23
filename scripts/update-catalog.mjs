@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 const API_KEY = process.env.AUDIUS_API_KEY;
 const API_BASE = "https://api.audius.co/v1";
 const CATALOG_PATH = "data/catalogo.json";
-const TTL_MS = 8 * 60 * 60 * 1000;
+const TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const LIMIT = 100;
 const PAUSE_MS = 200;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -121,13 +121,13 @@ try {
   catalog = {
     schemaVersion: 1,
     generatedAt: null,
-    ttlHours: 8,
+    ttlDays: 7,
     blocks: {}
   };
 }
 
 catalog.schemaVersion = 1;
-catalog.ttlHours = 8;
+catalog.ttlDays = 7;
 catalog.blocks ??= {};
 
 const now = Date.now();
