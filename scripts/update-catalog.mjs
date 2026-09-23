@@ -83,11 +83,22 @@ function absoluteAudiusUrl(value) {
 function artworkUrl(artwork) {
   if (!artwork) return null;
   if (typeof artwork === "string") return artwork;
-  return artwork._480x480 ?? artwork._1000x1000 ?? artwork._150x150 ?? null;
+
+  // REST API usa "480x480"; o SDK usa "_480x480".
+  return (
+    artwork["480x480"] ??
+    artwork["1000x1000"] ??
+    artwork["150x150"] ??
+    artwork._480x480 ??
+    artwork._1000x1000 ??
+    artwork._150x150 ??
+    null
+  );
 }
 
 function isTrackStreamable(track) {
-  return track?.isStreamable === true || track?.isStreamable === "true";
+  const value = track?.isStreamable ?? track?.is_streamable;
+  return value === true || value === "true";
 }
 
 function normalizeTrack(track) {
@@ -102,7 +113,7 @@ function normalizeTrack(track) {
     mood: track.mood ?? null,
     permalink: absoluteAudiusUrl(track.permalink),
     isStreamable: isTrackStreamable(track),
-    playCount: Number(track.playCount ?? 0)
+    playCount: Number(track.playCount ?? track.play_count ?? 0)
   };
 }
 
@@ -126,7 +137,8 @@ function blockNeedsRepair(block) {
   return tracks.some((track) => {
     const permalink = track?.permalink;
     const artwork = track?.artwork;
-    const streamable = track?.isStreamable === true || track?.isStreamable === "true";
+    const streamable = track?.isStreamable === true || track?.isStreamable === "true" ||
+      track?.is_streamable === true || track?.is_streamable === "true";
 
     return (
       !permalink ||
