@@ -48,3 +48,88 @@ body{margin:0;min-height:100vh;overflow-x:hidden;background:radial-gradient(circ
   .hero p{max-width:95%}
   .track-row{grid-auto-columns:150px}
 }
+
+
+.player{
+  position:fixed;
+  left:50%;
+  bottom:14px;
+  transform:translateX(-50%);
+  z-index:30;
+  width:min(760px,calc(100% - 24px));
+  display:grid;
+  grid-template-columns:58px minmax(0,1fr) 46px;
+  align-items:center;
+  gap:12px;
+  padding:10px 12px;
+  border:1px solid #3a3348;
+  border-radius:18px;
+  background:rgba(15,13,20,.92);
+  backdrop-filter:blur(22px);
+  box-shadow:0 18px 60px rgba(0,0,0,.55);
+}
+.player-artwork{
+  width:58px;
+  height:58px;
+  border-radius:13px;
+  object-fit:cover;
+  background:#211c2a;
+}
+.player-info{min-width:0}
+.player-status{
+  color:#9e8cff;
+  font-size:9px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.player-title{
+  margin-top:2px;
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.player-artist{
+  margin-top:2px;
+  color:#85858e;
+  font-size:10px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.player-progress-wrap{
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr) 28px;
+  align-items:center;
+  gap:6px;
+  margin-top:5px;
+  color:#666670;
+  font-size:8px;
+}
+.player-progress-wrap input{width:100%;accent-color:#b9a7ff}
+.player-toggle{
+  width:44px;
+  height:44px;
+  border:0;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:#b9a7ff;
+  color:#100d16;
+  cursor:pointer;
+}
+.player-toggle svg{width:19px;height:19px;fill:currentColor}
+.player.has-error .player-status{color:#e6a0a0}
+
+@media(max-width:650px){
+  .player{
+    bottom:8px;
+    width:calc(100% - 16px);
+    grid-template-columns:52px minmax(0,1fr) 42px;
+    padding:8px 9px;
+    border-radius:16px;
+  }
+  .player-artwork{width:52px;height:52px;border-radius:11px}
+  .player-toggle{width:40px;height:40px}
+}
