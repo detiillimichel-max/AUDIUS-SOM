@@ -88,6 +88,8 @@ export async function syncCatalog(options = {}) {
 
     return {
       source: "remote",
+      remoteAvailable: true,
+      isStale: false,
       generatedAt: remote.generatedAt,
       ttlDays: remote.ttlDays,
       updatedBlocks: Object.keys(changedBlocks),
@@ -96,6 +98,8 @@ export async function syncCatalog(options = {}) {
   } catch (error) {
     return {
       source: "local-fallback",
+      remoteAvailable: false,
+      isStale: localBlocks.length > 0,
       generatedAt: null,
       ttlDays: 7,
       updatedBlocks: [],
