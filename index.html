@@ -6,12 +6,13 @@
     <meta name="theme-color" content="#09090b">
     <meta name="description" content="AUDIUS-SOM — descoberta musical com catálogo Audius.">
     <title>AUDIUS-SOM</title>
-    <link rel="stylesheet" href="./src/app/app.css">
+    <link rel="stylesheet" href="./src/app/app.css?v=3">
+    <script src="https://unpkg.com/lucide@1.47.0/dist/umd/lucide.min.js"></script>
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
-        <span class="brand-mark">🎧</span>
+        <span class="brand-mark" aria-hidden="true"><i data-lucide="headphones"></i></span>
         <div><strong>AUDIUS-SOM</strong><small>descubra seu próximo som</small></div>
       </div>
       <div class="sync" id="status" aria-live="polite">Abrindo sua biblioteca local…</div>
@@ -24,7 +25,7 @@
           <h1>Seu som começa<br><span>agora.</span></h1>
           <p>O catálogo aparece primeiro do seu dispositivo. Enquanto você navega, a atualização acontece silenciosamente.</p>
         </div>
-        <div class="hero-disc">♫</div>
+        <div class="hero-disc" aria-hidden="true"><i data-lucide="music-2"></i></div>
       </section>
 
       <div class="catalog-head">
@@ -37,20 +38,31 @@
       <section id="catalog" class="catalog" aria-live="polite"></section>
 
       <div id="empty" class="empty" hidden>
-        <div>🎵</div>
+        <div aria-hidden="true"><i data-lucide="music-2"></i></div>
         <h2>Seu catálogo está chegando</h2>
         <p>Na primeira abertura, aguarde a sincronização do catálogo.</p>
       </div>
     </main>
 
     <script type="module">
-      import { startApp } from "./src/app/startup.js";
-      import { renderCatalog } from "./src/app/catalog-ui.js";
+      import { startApp } from "./src/app/startup.js?v=3";
+      import { renderCatalog } from "./src/app/catalog-ui.js?v=3";
 
       const status = document.querySelector("#status");
       const count = document.querySelector("#catalog-count");
       const catalog = document.querySelector("#catalog");
       const empty = document.querySelector("#empty");
+
+      function refreshIcons(root = document) {
+        window.lucide?.createIcons({
+          root,
+          attrs: {
+            "stroke-width": 1.8
+          }
+        });
+      }
+
+      refreshIcons();
 
       function showCatalog(detail) {
         renderCatalog(catalog, detail.blocks);
@@ -59,6 +71,8 @@
           ? `${detail.blocks.length} blocos • ${tracks} faixas`
           : "Nenhuma faixa disponível ainda.";
         empty.hidden = tracks > 0;
+        refreshIcons(catalog);
+        refreshIcons(empty);
       }
 
       window.addEventListener("audius:catalog-ready", (event) => {
