@@ -3,52 +3,89 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#0b0b0f">
+    <meta name="theme-color" content="#09090b">
+    <meta name="description" content="AUDIUS-SOM — descoberta musical com catálogo Audius.">
     <title>AUDIUS-SOM</title>
+    <link rel="stylesheet" href="./src/app/app.css">
   </head>
   <body>
-    <main>
-      <h1>🎧 AUDIUS-SOM</h1>
-      <p id="status">Abrindo sua biblioteca local…</p>
-      <p id="catalog-count"></p>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">🎧</span>
+        <div><strong>AUDIUS-SOM</strong><small>descubra seu próximo som</small></div>
+      </div>
+      <div class="sync" id="status" aria-live="polite">Abrindo sua biblioteca local…</div>
+    </header>
+
+    <main class="app-shell">
+      <section class="hero">
+        <div>
+          <span class="eyebrow">MODO CINEMA • AUDIUS</span>
+          <h1>Seu som começa<br><span>agora.</span></h1>
+          <p>O catálogo aparece primeiro do seu dispositivo. Enquanto você navega, a atualização acontece silenciosamente.</p>
+        </div>
+        <div class="hero-disc">♫</div>
+      </section>
+
+      <div class="catalog-head">
+        <div>
+          <h2>Descobrir</h2>
+          <p id="catalog-count">Preparando catálogo…</p>
+        </div>
+      </div>
+
+      <section id="catalog" class="catalog" aria-live="polite"></section>
+
+      <div id="empty" class="empty" hidden>
+        <div>🎵</div>
+        <h2>Seu catálogo está chegando</h2>
+        <p>Na primeira abertura, aguarde a sincronização do catálogo.</p>
+      </div>
     </main>
 
     <script type="module">
       import { startApp } from "./src/app/startup.js";
+      import { renderCatalog } from "./src/app/catalog-ui.js";
 
       const status = document.querySelector("#status");
       const count = document.querySelector("#catalog-count");
+      const catalog = document.querySelector("#catalog");
+      const empty = document.querySelector("#empty");
+
+      function showCatalog(detail) {
+        renderCatalog(catalog, detail.blocks);
+        const tracks = detail.blocks.reduce((sum, block) => sum + (block.tracks?.length || 0), 0);
+        count.textContent = tracks
+          ? `${detail.blocks.length} blocos • ${tracks} faixas`
+          : "Nenhuma faixa disponível ainda.";
+        empty.hidden = tracks > 0;
+      }
 
       window.addEventListener("audius:catalog-ready", (event) => {
-        const { blocks, source } = event.detail;
-        const label = source === "local"
-          ? "🟢 Conteúdo local carregado."
-          : "⚪ Primeira abertura: preparando catálogo…";
-
-        status.textContent = label;
-        count.textContent = blocks.length
-          ? `${blocks.length} blocos disponíveis.`
-          : "Nenhum bloco local ainda.";
+        showCatalog(event.detail);
+        status.textContent = event.detail.source === "local"
+          ? "● catálogo local"
+          : "○ preparando catálogo";
+        status.className = "sync local";
       });
 
       window.addEventListener("audius:catalog-updated", (event) => {
-        const { blocks, updatedBlocks, remoteAvailable } = event.detail;
-
-        if (remoteAvailable) {
-          status.textContent = updatedBlocks.length
-            ? "🔄 Catálogo atualizado silenciosamente."
-            : "✓ Catálogo local já estava atualizado.";
-        }
-
-        count.textContent = `${blocks.length} blocos disponíveis.`;
+        showCatalog(event.detail);
+        status.textContent = event.detail.updatedBlocks.length
+          ? "↻ atualizado silenciosamente"
+          : "✓ catálogo atualizado";
+        status.className = "sync online";
       });
 
       window.addEventListener("audius:catalog-update-error", () => {
-        status.textContent = "🟡 Catálogo local mantido; atualização pendente.";
+        status.textContent = "● catálogo local • atualização pendente";
+        status.className = "sync pending";
       });
 
       startApp().catch((error) => {
-        status.textContent = `Não foi possível iniciar o catálogo: ${error.message}`;
+        status.textContent = "Não foi possível iniciar o catálogo";
+        status.className = "sync pending";
+        console.error(error);
       });
     </script>
   </body>
