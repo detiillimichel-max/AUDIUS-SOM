@@ -3,7 +3,7 @@ function safeText(value, fallback = "Sem informação") {
 }
 
 function artworkFor(track) {
-  return typeof track?.artwork === "string" && track.artwork.startsWith("http")
+  return typeof track?.artwork === "string" && /^https?:\/\//i.test(track.artwork)
     ? track.artwork
     : "";
 }
@@ -55,9 +55,9 @@ function trackCard(track) {
   const button = document.createElement("button");
   button.className = "play";
   button.type = "button";
-  button.textContent = "▶ Ouvir";
+  button.innerHTML = '<i data-lucide="play"></i><span>Ouvir</span>';
   button.addEventListener("click", () => {
-    if (!track?.permalink) return;
+    if (!track?.permalink || !/^https?:\/\//i.test(track.permalink)) return;
     window.open(track.permalink, "_blank", "noopener,noreferrer");
   });
 
@@ -70,7 +70,7 @@ function createPlaceholder(track) {
   const placeholder = document.createElement("div");
   placeholder.className = "art art-placeholder";
   placeholder.setAttribute("aria-label", `Capa indisponível: ${safeText(track?.title)}`);
-  placeholder.innerHTML = "<span>♫</span>";
+  placeholder.innerHTML = '<i data-lucide="music-2"></i>';
   return placeholder;
 }
 
