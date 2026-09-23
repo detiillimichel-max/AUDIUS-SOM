@@ -38,8 +38,10 @@ O GitHub Actions usa somente `AUDIUS_API_KEY` para as consultas públicas do cat
 
 ## Próximas camadas
 
-- IndexedDB\n- separação entre catálogo rotativo e dados permanentes da Minha Biblioteca
+- IndexedDB
+- separação entre catálogo rotativo e dados permanentes da Minha Biblioteca
 - Commit 2: camada IndexedDB local criada para catálogo, Favoritos, Playlists, Histórico e Configurações
+- Commit 3: sincronizador remoto → IndexedDB com fallback local
 - Rate Guard no PWA
 - Storage Guard
 - Modo Cinema
