@@ -9,64 +9,45 @@ const PAUSE_MS = 200;
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_ATTEMPTS = 2;
 
-if (!API_KEY) {
-  throw new Error("AUDIUS_API_KEY não configurado.");
-}
+if (!API_KEY) throw new Error("AUDIUS_API_KEY não configurado.");
 
 function buildUrl(path, params = {}) {
   const url = new URL(`${API_BASE}${path}`);
   for (const [key, value] of Object.entries({ ...params, api_key: API_KEY })) {
-    if (value !== undefined && value !== null) {
-      url.searchParams.set(key, String(value));
-    }
+    if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
   }
   return url;
 }
 
 async function request(path, params = {}) {
   let lastError;
-
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
     try {
-      const url = buildUrl(path, params);
-      const response = await fetch(url, {
+      const response = await fetch(buildUrl(path, params), {
         method: "GET",
-        headers: {
-          Accept: "application/json"
-        },
+        headers: { Accept: "application/json" },
         signal: controller.signal
       });
-
       const text = await response.text();
       let payload;
-
-      try {
-        payload = JSON.parse(text);
-      } catch {
-        payload = null;
-      }
+      try { payload = JSON.parse(text); } catch { payload = null; }
 
       if (!response.ok) {
         const detail = payload?.error ?? payload?.message ?? text.slice(0, 200);
         throw new Error(`HTTP ${response.status}: ${detail}`);
       }
-
       if (!payload || !Array.isArray(payload.data)) {
         throw new Error("Resposta da Audius sem o campo data esperado.");
       }
-
       return payload;
     } catch (error) {
       lastError = error;
       const message = error?.name === "AbortError"
         ? `timeout após ${REQUEST_TIMEOUT_MS / 1000}s`
         : (error?.message ?? String(error));
-
       console.error(`[HTTP] tentativa ${attempt}/${MAX_ATTEMPTS}: ${message}`);
-
       if (attempt < MAX_ATTEMPTS) {
         await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
       }
@@ -74,7 +55,6 @@ async function request(path, params = {}) {
       clearTimeout(timeout);
     }
   }
-
   throw lastError;
 }
 
@@ -91,39 +71,63 @@ const blockDefinitions = [
   ["discoveries", () => request("/tracks/trending", { limit: LIMIT, offset: LIMIT, time: "week" })]
 ];
 
+function absoluteAudiusUrl(value) {
+  if (!value) return null;
+  try {
+    return new URL(value, "https://audius.co").href;
+  } catch {
+    return null;
+  }
+}
+
+function artworkUrl(artwork) {
+  if (!artwork) return null;
+  if (typeof artwork === "string") return artwork;
+  return artwork._480x480 ?? artwork._1000x1000 ?? artwork._150x150 ?? null;
+}
+
+function isTrackStreamable(track) {
+  return track?.isStreamable === true || track?.isStreamable === "true";
+}
+
 function normalizeTrack(track) {
   return {
     id: track.id,
     title: track.title ?? "",
     artist: track.user?.name ?? track.user?.handle ?? "Artista Audius",
     handle: track.user?.handle ?? null,
-    artwork: track.artwork?._480x480 ?? track.artwork?._1000x1000 ?? track.artwork?._150x150 ?? null,
+    artwork: artworkUrl(track.artwork),
     duration: Number(track.duration ?? 0),
     genre: track.genre ?? null,
     mood: track.mood ?? null,
-    permalink: track.permalink ?? null,
-    isStreamable: Boolean(track.isStreamable),
+    permalink: absoluteAudiusUrl(track.permalink),
+    isStreamable: isTrackStreamable(track),
     playCount: Number(track.playCount ?? 0)
   };
 }
 
 function validTracks(data) {
   return data
-    .filter((track) => track?.id && track?.isStreamable !== false)
+    .filter((track) => track?.id && isTrackStreamable(track))
     .map(normalizeTrack)
     .filter((track) => track.id);
+}
+
+function blockNeedsRepair(block) {
+  const tracks = Array.isArray(block?.tracks) ? block.tracks : [];
+  if (!tracks.length) return true;
+
+  return tracks.some((track) => {
+    const permalink = track?.permalink;
+    return !permalink || !/^https?:\/\//i.test(permalink);
+  });
 }
 
 let catalog;
 try {
   catalog = JSON.parse(await fs.readFile(CATALOG_PATH, "utf8"));
 } catch {
-  catalog = {
-    schemaVersion: 1,
-    generatedAt: null,
-    ttlDays: 7,
-    blocks: {}
-  };
+  catalog = { schemaVersion: 1, generatedAt: null, ttlDays: 7, blocks: {} };
 }
 
 catalog.schemaVersion = 1;
@@ -135,43 +139,35 @@ let changed = false;
 let refreshed = 0;
 
 for (const [name, fetcher] of blockDefinitions) {
-  const current = catalog.blocks[name] ?? {
-    label: name,
-    updatedAt: null,
-    tracks: []
-  };
-
+  const current = catalog.blocks[name] ?? { label: name, updatedAt: null, tracks: [] };
   const updatedMs = current.updatedAt ? Date.parse(current.updatedAt) : 0;
   const expired = !updatedMs || now - updatedMs >= TTL_MS;
+  const repair = blockNeedsRepair(current);
 
-  if (!expired && current.tracks?.length) {
+  if (!expired && !repair && current.tracks?.length) {
     console.log(`[CACHE] ${name}: válido, mantendo ${current.tracks.length} músicas.`);
     catalog.blocks[name] = current;
     continue;
   }
 
-  console.log(`[AUDIUS] ${name}: renovando bloco...`);
+  console.log(`[AUDIUS] ${name}: ${repair ? "corrigindo metadados" : "renovando bloco"}...`);
 
   try {
     const response = await fetcher();
     const tracks = validTracks(response.data).slice(0, LIMIT);
-
-    if (!tracks.length) {
-      throw new Error("Audius retornou 0 faixas válidas.");
-    }
+    if (!tracks.length) throw new Error("Audius retornou 0 faixas válidas.");
 
     catalog.blocks[name] = {
       ...current,
       updatedAt: new Date().toISOString(),
       tracks
     };
-
     refreshed++;
     changed = true;
     console.log(`[OK] ${name}: ${tracks.length} músicas.`);
   } catch (error) {
     console.error(`[ERRO] ${name}:`, error?.message ?? error);
-    console.log(`[FALLBACK] ${name}: mantendo o bloco anterior.`);
+    console.log("[FALLBACK] mantendo o bloco anterior.");
   }
 
   await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
@@ -188,7 +184,4 @@ const total = Object.values(catalog.blocks)
   .reduce((sum, block) => sum + (block.tracks?.length ?? 0), 0);
 
 console.log(`[RESUMO] Blocos renovados: ${refreshed}; músicas catalogadas: ${total}.`);
-
-if (!changed) {
-  console.log("[INFO] Nenhum bloco precisava de atualização.");
-}
+if (!changed) console.log("[INFO] Nenhum bloco precisava de atualização.");

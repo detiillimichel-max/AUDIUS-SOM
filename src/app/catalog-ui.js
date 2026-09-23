@@ -3,30 +3,35 @@ function safeText(value, fallback = "Sem informação") {
 }
 
 function artworkFor(track) {
-  return track?.artwork || track?.artworkUrl || "";
+  return typeof track?.artwork === "string" && track.artwork.startsWith("http")
+    ? track.artwork
+    : "";
 }
 
 function durationLabel(seconds) {
   const total = Number(seconds);
   if (!Number.isFinite(total) || total <= 0) return "";
-  const minutes = Math.floor(total / 60);
-  const secs = String(Math.floor(total % 60)).padStart(2, "0");
-  return `${minutes}:${secs}`;
+  return `${Math.floor(total / 60)}:${String(Math.floor(total % 60)).padStart(2, "0")}`;
 }
 
 function trackCard(track) {
   const article = document.createElement("article");
   article.className = "track";
 
-  const image = document.createElement("img");
-  image.className = "art";
-  image.loading = "lazy";
-  image.alt = `Capa de ${safeText(track?.title)}`;
-  image.src = artworkFor(track);
-  image.onerror = () => {
-    image.removeAttribute("src");
-    image.style.background = "linear-gradient(135deg,#292331,#111114)";
-  };
+  const artwork = artworkFor(track);
+  if (artwork) {
+    const image = document.createElement("img");
+    image.className = "art";
+    image.loading = "lazy";
+    image.alt = "";
+    image.src = artwork;
+    image.addEventListener("error", () => {
+      image.replaceWith(createPlaceholder(track));
+    }, { once: true });
+    article.append(image);
+  } else {
+    article.append(createPlaceholder(track));
+  }
 
   const body = document.createElement("div");
   body.className = "track-body";
@@ -52,12 +57,21 @@ function trackCard(track) {
   button.type = "button";
   button.textContent = "▶ Ouvir";
   button.addEventListener("click", () => {
-    if (track?.permalink) window.open(track.permalink, "_blank", "noopener,noreferrer");
+    if (!track?.permalink) return;
+    window.open(track.permalink, "_blank", "noopener,noreferrer");
   });
 
   body.append(title, artist, meta, button);
-  article.append(image, body);
+  article.append(body);
   return article;
+}
+
+function createPlaceholder(track) {
+  const placeholder = document.createElement("div");
+  placeholder.className = "art art-placeholder";
+  placeholder.setAttribute("aria-label", `Capa indisponível: ${safeText(track?.title)}`);
+  placeholder.innerHTML = "<span>♫</span>";
+  return placeholder;
 }
 
 export function renderCatalog(container, blocks = []) {
@@ -75,9 +89,7 @@ export function renderCatalog(container, blocks = []) {
     const row = document.createElement("div");
     row.className = "track-row";
 
-    for (const track of block.tracks) {
-      row.append(trackCard(track));
-    }
+    for (const track of block.tracks) row.append(trackCard(track));
 
     section.append(heading, row);
     container.append(section);
