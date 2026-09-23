@@ -6,8 +6,5 @@
   "description": "Motor de catálogo do AUDIUS-SOM",
   "scripts": {
     "catalog": "node scripts/update-catalog.mjs"
-  },
-  "dependencies": {
-    "@audius/sdk": "16.0.0"
   }
 }
