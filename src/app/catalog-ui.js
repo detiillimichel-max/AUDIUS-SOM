@@ -57,8 +57,8 @@ function trackCard(track) {
   button.type = "button";
   button.innerHTML = '<i data-lucide="play"></i><span>Ouvir</span>';
   button.addEventListener("click", () => {
-    if (!track?.permalink || !/^https?:\/\//i.test(track.permalink)) return;
-    window.open(track.permalink, "_blank", "noopener,noreferrer");
+    if (!track?.id) return;
+    window.dispatchEvent(new CustomEvent("audius:play-track", { detail: track }));
   });
 
   body.append(title, artist, meta, button);
