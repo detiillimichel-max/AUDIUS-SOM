@@ -1,29 +1,94 @@
 import fs from "node:fs/promises";
-import { sdk } from "@audius/sdk";
 
 const API_KEY = process.env.AUDIUS_API_KEY;
+const API_BASE = "https://api.audius.co/v1";
 const CATALOG_PATH = "data/catalogo.json";
 const TTL_MS = 8 * 60 * 60 * 1000;
 const LIMIT = 100;
 const PAUSE_MS = 200;
+const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_ATTEMPTS = 2;
 
 if (!API_KEY) {
   throw new Error("AUDIUS_API_KEY não configurado.");
 }
 
-const audius = sdk({ apiKey: API_KEY });
+function buildUrl(path, params = {}) {
+  const url = new URL(`${API_BASE}${path}`);
+  for (const [key, value] of Object.entries({ ...params, api_key: API_KEY })) {
+    if (value !== undefined && value !== null) {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  return url;
+}
+
+async function request(path, params = {}) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+    try {
+      const url = buildUrl(path, params);
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json"
+        },
+        signal: controller.signal
+      });
+
+      const text = await response.text();
+      let payload;
+
+      try {
+        payload = JSON.parse(text);
+      } catch {
+        payload = null;
+      }
+
+      if (!response.ok) {
+        const detail = payload?.error ?? payload?.message ?? text.slice(0, 200);
+        throw new Error(`HTTP ${response.status}: ${detail}`);
+      }
+
+      if (!payload || !Array.isArray(payload.data)) {
+        throw new Error("Resposta da Audius sem o campo data esperado.");
+      }
+
+      return payload;
+    } catch (error) {
+      lastError = error;
+      const message = error?.name === "AbortError"
+        ? `timeout após ${REQUEST_TIMEOUT_MS / 1000}s`
+        : (error?.message ?? String(error));
+
+      console.error(`[HTTP] tentativa ${attempt}/${MAX_ATTEMPTS}: ${message}`);
+
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      }
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  throw lastError;
+}
 
 const blockDefinitions = [
-  ["trending", () => audius.tracks.getTrendingTracks({ limit: LIMIT, time: "allTime" })],
-  ["underground", () => audius.tracks.getUndergroundTrendingTracks({ limit: LIMIT })],
-  ["latest", () => audius.tracks.searchTracks({ limit: LIMIT, sortMethod: "recent" })],
-  ["electronic", () => audius.tracks.getTrendingTracks({ limit: LIMIT, genre: "Electronic", time: "week" })],
-  ["hiphop", () => audius.tracks.getTrendingTracks({ limit: LIMIT, genre: "Hip-Hop/Rap", time: "week" })],
-  ["pop", () => audius.tracks.getTrendingTracks({ limit: LIMIT, genre: "Pop", time: "week" })],
-  ["rock", () => audius.tracks.getTrendingTracks({ limit: LIMIT, genre: "Rock", time: "week" })],
-  ["ambient", () => audius.tracks.getTrendingTracks({ limit: LIMIT, genre: "Ambient", time: "week" })],
-  ["house", () => audius.tracks.getTrendingTracks({ limit: LIMIT, genre: "House", time: "week" })],
-  ["discoveries", () => audius.tracks.getTrendingTracks({ limit: LIMIT, offset: LIMIT, time: "week" })]
+  ["trending", () => request("/tracks/trending", { limit: LIMIT, time: "allTime" })],
+  ["underground", () => request("/tracks/trending/underground", { limit: LIMIT })],
+  ["latest", () => request("/tracks/search", { limit: LIMIT, sort_method: "recent" })],
+  ["electronic", () => request("/tracks/trending", { limit: LIMIT, genre: "Electronic", time: "week" })],
+  ["hiphop", () => request("/tracks/trending", { limit: LIMIT, genre: "Hip-Hop/Rap", time: "week" })],
+  ["pop", () => request("/tracks/trending", { limit: LIMIT, genre: "Pop", time: "week" })],
+  ["rock", () => request("/tracks/trending", { limit: LIMIT, genre: "Rock", time: "week" })],
+  ["ambient", () => request("/tracks/trending", { limit: LIMIT, genre: "Ambient", time: "week" })],
+  ["house", () => request("/tracks/trending", { limit: LIMIT, genre: "House", time: "week" })],
+  ["discoveries", () => request("/tracks/trending", { limit: LIMIT, offset: LIMIT, time: "week" })]
 ];
 
 function normalizeTrack(track) {
@@ -89,7 +154,7 @@ for (const [name, fetcher] of blockDefinitions) {
 
   try {
     const response = await fetcher();
-    const tracks = validTracks(response.data ?? []).slice(0, LIMIT);
+    const tracks = validTracks(response.data).slice(0, LIMIT);
 
     if (!tracks.length) {
       throw new Error("Audius retornou 0 faixas válidas.");
