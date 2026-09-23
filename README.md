@@ -9,8 +9,8 @@ O coração do projeto começa separado da interface:
 - 10 blocos de catálogo
 - até 100 músicas por bloco
 - renovação independente por bloco
-- TTL de 8 horas por bloco
-- atualização horária do GitHub Actions
+- TTL de 7 dias por bloco
+- verificação diária do GitHub Actions
 - somente blocos expirados fazem chamadas ao Audius
 - catálogo anterior permanece se uma renovação falhar
 - máximo de 100 músicas por chamada
@@ -38,7 +38,7 @@ O GitHub Actions usa somente `AUDIUS_API_KEY` para as consultas públicas do cat
 
 ## Próximas camadas
 
-- IndexedDB
+- IndexedDB\n- separação entre catálogo rotativo e dados permanentes da Minha Biblioteca
 - Rate Guard no PWA
 - Storage Guard
 - Modo Cinema
