@@ -23,7 +23,7 @@ body{margin:0;min-height:100vh;overflow-x:hidden;background:radial-gradient(circ
 .catalog{display:grid;gap:30px;min-width:0}
 .block{min-width:0;max-width:100%}
 .block h3{margin:0 0 13px;font-size:18px}
-.track-row{display:grid;width:100%;min-width:0;max-width:100%;grid-auto-flow:column;grid-auto-columns:minmax(155px,185px);gap:13px;overflow-x:auto;overflow-y:hidden;padding:2px 2px 9px;scrollbar-width:thin;overscroll-behavior-x:contain;overscroll-behavior-y:none;touch-action:pan-x;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+.track-row{display:grid;width:100%;min-width:0;max-width:100%;grid-auto-flow:column;grid-auto-columns:minmax(155px,185px);gap:13px;overflow-x:auto;overflow-y:hidden;padding:2px 2px 9px;scrollbar-width:thin;overscroll-behavior-x:contain;overscroll-behavior-y:none;touch-action:pan-x pan-y;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
 .track{min-width:0;border:1px solid #25252c;background:#111114;border-radius:17px;overflow:hidden;transition:transform .2s,border-color .2s;scroll-snap-align:start}
 .track:hover{transform:translateY(-3px);border-color:#484252}
 .art{aspect-ratio:1;display:block;width:100%;object-fit:cover;background:#1b1b20}
