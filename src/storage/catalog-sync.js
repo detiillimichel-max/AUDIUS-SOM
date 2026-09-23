@@ -109,6 +109,34 @@ export async function syncCatalog(options = {}) {
   }
 }
 
+/**
+ * Inicialização local-first.
+ *
+ * 1. Entrega imediatamente o que já está no IndexedDB.
+ * 2. Inicia a sincronização remota em segundo plano.
+ * 3. O catálogo local nunca é apagado enquanto a sincronização acontece.
+ */
+export async function startCatalog(options = {}) {
+  const localBlocks = await getCatalogBlocks();
+
+  const initial = {
+    source: localBlocks.length ? "local" : "empty",
+    remoteAvailable: null,
+    isStale: localBlocks.length > 0,
+    generatedAt: null,
+    ttlDays: 7,
+    updatedBlocks: [],
+    blocks: localBlocks
+  };
+
+  const syncPromise = syncCatalog(options);
+
+  return {
+    initial,
+    syncPromise
+  };
+}
+
 export async function loadCatalog(options = {}) {
   const result = await syncCatalog(options);
 

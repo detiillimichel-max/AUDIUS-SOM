@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0b0b0f">
+    <title>AUDIUS-SOM</title>
+  </head>
+  <body>
+    <main>
+      <h1>🎧 AUDIUS-SOM</h1>
+      <p id="status">Abrindo sua biblioteca local…</p>
+      <p id="catalog-count"></p>
+    </main>
+
+    <script type="module">
+      import { startApp } from "./src/app/startup.js";
+
+      const status = document.querySelector("#status");
+      const count = document.querySelector("#catalog-count");
+
+      window.addEventListener("audius:catalog-ready", (event) => {
+        const { blocks, source } = event.detail;
+        const label = source === "local"
+          ? "🟢 Conteúdo local carregado."
+          : "⚪ Primeira abertura: preparando catálogo…";
+
+        status.textContent = label;
+        count.textContent = blocks.length
+          ? `${blocks.length} blocos disponíveis.`
+          : "Nenhum bloco local ainda.";
+      });
+
+      window.addEventListener("audius:catalog-updated", (event) => {
+        const { blocks, updatedBlocks, remoteAvailable } = event.detail;
+
+        if (remoteAvailable) {
+          status.textContent = updatedBlocks.length
+            ? "🔄 Catálogo atualizado silenciosamente."
+            : "✓ Catálogo local já estava atualizado.";
+        }
+
+        count.textContent = `${blocks.length} blocos disponíveis.`;
+      });
+
+      window.addEventListener("audius:catalog-update-error", () => {
+        status.textContent = "🟡 Catálogo local mantido; atualização pendente.";
+      });
+
+      startApp().catch((error) => {
+        status.textContent = `Não foi possível iniciar o catálogo: ${error.message}`;
+      });
+    </script>
+  </body>
+</html>

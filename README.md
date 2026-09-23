@@ -36,12 +36,47 @@ Resultado: **até 1.000 faixas de catálogo**, organizadas em blocos independent
 
 O GitHub Actions usa somente `AUDIUS_API_KEY` para as consultas públicas do catálogo. O `AUDIUS_BEARER_TOKEN` não é enviado ao navegador.
 
+## Commit 2 — IndexedDB
+
+A camada local possui stores separadas para:
+
+- catálogo rotativo
+- Favoritos
+- Playlists
+- Histórico
+- Configurações
+
+A atualização do catálogo não apaga os dados permanentes da Minha Biblioteca.
+
+## Commit 3 — Sincronizador
+
+O sincronizador faz:
+
+`data/catalogo.json` → IndexedDB
+
+Se o remoto falhar, o último catálogo local permanece disponível.
+
+## Commit 4 — Inicialização local-first
+
+A abertura do PWA agora segue esta ordem:
+
+1. 🟢 abre primeiro o catálogo existente no IndexedDB;
+2. 📱 a interface pode começar a renderizar sem esperar a rede;
+3. 🔄 a sincronização de `data/catalogo.json` começa em segundo plano;
+4. 💾 somente blocos alterados são gravados;
+5. 🟡 se o remoto falhar, o catálogo local continua disponível;
+6. ✓ quando o remoto volta, a atualização acontece silenciosamente.
+
+Eventos disponíveis para a interface:
+
+- `audius:catalog-ready`
+- `audius:catalog-updated`
+- `audius:catalog-update-error`
+
+O Commit 4 ainda não implementa o player ou o visual final. Ele estabelece a abertura correta do PWA.
+
 ## Próximas camadas
 
-- IndexedDB
-- separação entre catálogo rotativo e dados permanentes da Minha Biblioteca
-- Commit 2: camada IndexedDB local criada para catálogo, Favoritos, Playlists, Histórico e Configurações
-- Commit 3: sincronizador remoto → IndexedDB com fallback local
 - Rate Guard no PWA
 - Storage Guard
 - Modo Cinema
