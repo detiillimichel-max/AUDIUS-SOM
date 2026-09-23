@@ -110,7 +110,13 @@ function validTracks(data) {
   return data
     .filter((track) => track?.id && isTrackStreamable(track))
     .map(normalizeTrack)
-    .filter((track) => track.id);
+    .filter((track) =>
+      track.id &&
+      track.permalink &&
+      /^https?:\/\//i.test(track.permalink) &&
+      track.artwork &&
+      /^https?:\/\//i.test(track.artwork)
+    );
 }
 
 function blockNeedsRepair(block) {
@@ -119,7 +125,16 @@ function blockNeedsRepair(block) {
 
   return tracks.some((track) => {
     const permalink = track?.permalink;
-    return !permalink || !/^https?:\/\//i.test(permalink);
+    const artwork = track?.artwork;
+    const streamable = track?.isStreamable === true || track?.isStreamable === "true";
+
+    return (
+      !permalink ||
+      !/^https?:\/\//i.test(permalink) ||
+      !artwork ||
+      !/^https?:\/\//i.test(artwork) ||
+      !streamable
+    );
   });
 }
 
