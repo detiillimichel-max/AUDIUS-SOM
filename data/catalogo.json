@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": null,
+  "ttlHours": 8,
+  "blocks": {
+    "trending": { "label": "🔥 Trending", "updatedAt": null, "tracks": [] },
+    "underground": { "label": "💎 Underground", "updatedAt": null, "tracks": [] },
+    "latest": { "label": "🆕 Latest", "updatedAt": null, "tracks": [] },
+    "electronic": { "label": "🎛️ Electronic", "updatedAt": null, "tracks": [] },
+    "hiphop": { "label": "🎤 Hip-Hop/Rap", "updatedAt": null, "tracks": [] },
+    "pop": { "label": "✨ Pop", "updatedAt": null, "tracks": [] },
+    "rock": { "label": "🎸 Rock", "updatedAt": null, "tracks": [] },
+    "ambient": { "label": "🌙 Ambient", "updatedAt": null, "tracks": [] },
+    "house": { "label": "🏠 House", "updatedAt": null, "tracks": [] },
+    "discoveries": { "label": "🧭 Descobertas", "updatedAt": null, "tracks": [] }
+  }
+}

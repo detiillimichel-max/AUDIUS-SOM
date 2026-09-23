@@ -1,0 +1,47 @@
+name: Audius Catalog Engine
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audius-catalog
+  cancel-in-progress: false
+
+jobs:
+  update-catalog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Update Audius catalog
+        env:
+          AUDIUS_API_KEY: ${{ secrets.AUDIUS_API_KEY }}
+        run: npm run catalog
+
+      - name: Commit catalog changes
+        run: |
+          if git diff --quiet -- data/catalogo.json; then
+            echo "Catálogo já está atualizado."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/catalogo.json
+          git commit -m "chore: atualizar catálogo Audius"
+          git push
