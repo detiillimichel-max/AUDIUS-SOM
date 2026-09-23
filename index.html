@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#09090b">
     <meta name="description" content="AUDIUS-SOM — descoberta musical com catálogo Audius.">
     <title>AUDIUS-SOM</title>
-    <link rel="stylesheet" href="./src/app/app.css?v=3">
+    <link rel="stylesheet" href="./src/app/app.css?v=4">
     <script src="https://unpkg.com/lucide@1.47.0/dist/umd/lucide.min.js"></script>
   </head>
   <body>
@@ -44,14 +44,34 @@
       </div>
     </main>
 
+
+    <section id="player" class="player" hidden aria-label="Player AUDIUS-SOM">
+      <img class="player-artwork" data-player-artwork src="" alt="">
+      <div class="player-info">
+        <div class="player-status" data-player-status>Pronto</div>
+        <div class="player-title" data-player-title>Selecione uma música</div>
+        <div class="player-artist" data-player-artist>Artista Audius</div>
+        <div class="player-progress-wrap">
+          <span data-player-current>0:00</span>
+          <input data-player-progress type="range" min="0" max="100" value="0" step="0.1" aria-label="Progresso da música">
+          <span data-player-total>0:00</span>
+        </div>
+      </div>
+      <button class="player-toggle" data-player-toggle type="button" aria-label="Reproduzir">
+        <i data-lucide="play"></i>
+      </button>
+    </section>
+
     <script type="module">
-      import { startApp } from "./src/app/startup.js?v=3";
-      import { renderCatalog } from "./src/app/catalog-ui.js?v=3";
+      import { startApp } from "./src/app/startup.js?v=4";
+      import { renderCatalog } from "./src/app/catalog-ui.js?v=4";
+      import { initPlayer } from "./src/app/player.js?v=1";
 
       const status = document.querySelector("#status");
       const count = document.querySelector("#catalog-count");
       const catalog = document.querySelector("#catalog");
       const empty = document.querySelector("#empty");
+      const player = document.querySelector("#player");
 
       function refreshIcons(root = document) {
         window.lucide?.createIcons({
@@ -63,6 +83,7 @@
       }
 
       refreshIcons();
+      initPlayer(player);
 
       function showCatalog(detail) {
         renderCatalog(catalog, detail.blocks);
