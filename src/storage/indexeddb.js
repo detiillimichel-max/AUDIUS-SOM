@@ -1,5 +1,5 @@
 const DB_NAME = "audius-som";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const STORES = {
   CATALOG_BLOCKS: "catalog_blocks",
@@ -66,6 +66,8 @@ export function openAudiusDB() {
       if (request.oldVersion < 2 && db.objectStoreNames.contains(STORES.CATALOG_BLOCKS)) {
         request.transaction.objectStore(STORES.CATALOG_BLOCKS).clear();
       }
+      // Migração v3: nenhuma store de usuário é apagada. A biblioteca reutiliza
+      // Favorites, Playlists, History e Settings que já existiam.
     };
 
     request.onsuccess = () => {
