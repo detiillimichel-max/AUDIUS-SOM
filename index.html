@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#09090b">
 <meta name="description" content="AUDIUS-SOM — descoberta musical com catálogo Audius.">
 <title>AUDIUS-SOM</title>
-<link rel="stylesheet" href="./src/app/app.css?v=6">
+<link rel="stylesheet" href="./src/app/app.css?v=7">
 <script src="https://unpkg.com/lucide@1.47.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
@@ -15,12 +15,37 @@
 <div class="sync" id="status" aria-live="polite">Abrindo sua biblioteca local…</div>
 </header>
 <main class="app-shell">
-<section class="hero"><div><span class="eyebrow">MODO CINEMA • AUDIUS</span><h1>Seu som começa<br><span>agora.</span></h1><p>O catálogo aparece primeiro do seu dispositivo. Enquanto você navega, a atualização acontece silenciosamente.</p></div><div class="hero-disc" aria-hidden="true"><i data-lucide="music-2"></i></div></section>
+<section class="hero" id="hero-player" aria-label="Player completo AUDIUS-SOM">
+<div class="hero-intro" data-hero-intro>
+<span class="eyebrow">MODO CINEMA • AUDIUS</span>
+<h1>Seu som começa<br><span>agora.</span></h1>
+<p>O catálogo aparece primeiro do seu dispositivo. Enquanto você navega, a atualização acontece silenciosamente.</p>
+</div>
+<div class="hero-player-content" data-hero-content hidden>
+<div class="hero-player-art-wrap"><img class="hero-player-artwork" data-hero-artwork src="" alt=""></div>
+<div class="hero-player-details">
+<div class="eyebrow" data-hero-status>PRONTO</div>
+<h1 data-hero-title>Selecione uma música</h1>
+<p class="hero-player-artist" data-hero-artist>Artista Audius</p>
+<div class="hero-progress-wrap"><span data-hero-current>0:00</span><input data-hero-progress type="range" min="0" max="100" value="0" step="0.1" aria-label="Progresso da música"><span data-hero-total>0:00</span></div>
+<div class="player-actions hero-actions" aria-label="Ações da música">
+<button type="button" data-hero-favorite class="player-action" aria-label="Favoritar" aria-pressed="false"><i data-lucide="heart"></i><span>Favoritar</span></button>
+<button type="button" data-hero-share class="player-action" aria-label="Compartilhar"><i data-lucide="share-2"></i><span>Compartilhar</span></button>
+<button type="button" data-hero-more class="player-action" aria-label="Mais opções" aria-expanded="false"><i data-lucide="more-vertical"></i><span>Mais</span></button>
+</div>
+</div>
+<button class="hero-player-toggle" data-hero-toggle type="button" aria-label="Reproduzir"><i data-lucide="play"></i></button>
+<div class="player-menu hero-menu" data-hero-menu hidden>
+<button type="button" data-hero-open-audius><i data-lucide="external-link"></i><span>Ver no Audius</span></button>
+<button type="button" data-hero-copy><i data-lucide="link"></i><span>Copiar link da música</span></button>
+</div>
+</div>
+</section>
 <div class="catalog-head"><div><h2>Descobrir</h2><p id="catalog-count">Preparando catálogo…</p></div></div>
 <section id="catalog" class="catalog" aria-live="polite"></section>
 <div id="empty" class="empty" hidden><div aria-hidden="true"><i data-lucide="music-2"></i></div><h2>Seu catálogo está chegando</h2><p>Na primeira abertura, aguarde a sincronização do catálogo.</p></div>
 </main>
-<section id="player" class="player" hidden aria-label="Player AUDIUS-SOM">
+<section id="player" class="player" hidden aria-label="Mini player AUDIUS-SOM">
 <img class="player-artwork" data-player-artwork src="" alt="">
 <div class="player-info">
 <div class="player-status" data-player-status>Pronto</div>
@@ -28,7 +53,7 @@
 <div class="player-artist" data-player-artist>Artista Audius</div>
 <div class="player-progress-wrap"><span data-player-current>0:00</span><input data-player-progress type="range" min="0" max="100" value="0" step="0.1" aria-label="Progresso da música"><span data-player-total>0:00</span></div>
 <div class="player-actions" aria-label="Ações da música">
-<button type="button" data-player-favorite class="player-action" aria-label="Favoritar"><i data-lucide="heart"></i><span>Favoritar</span></button>
+<button type="button" data-player-favorite class="player-action" aria-label="Favoritar" aria-pressed="false"><i data-lucide="heart"></i><span>Favoritar</span></button>
 <button type="button" data-player-share class="player-action" aria-label="Compartilhar"><i data-lucide="share-2"></i><span>Compartilhar</span></button>
 <button type="button" data-player-more class="player-action" aria-label="Mais opções" aria-expanded="false"><i data-lucide="more-vertical"></i><span>Mais</span></button>
 </div>
@@ -42,7 +67,7 @@
 <script type="module">
 import { startApp } from "./src/app/startup.js?v=4";
 import { renderCatalog } from "./src/app/catalog-ui.js?v=4";
-import { initPlayer } from "./src/app/player.js?v=2";
+import { initPlayer } from "./src/app/player.js?v=3";
 const status=document.querySelector("#status"),count=document.querySelector("#catalog-count"),catalog=document.querySelector("#catalog"),empty=document.querySelector("#empty"),player=document.querySelector("#player");
 function refreshIcons(root=document){window.lucide?.createIcons({root,attrs:{"stroke-width":1.8}})}
 refreshIcons();initPlayer(player);
