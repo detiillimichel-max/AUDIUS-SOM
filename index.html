@@ -67,8 +67,8 @@
 <script type="module">
 import { startApp } from "./src/app/startup.js?v=4";
 import { renderCatalog } from "./src/app/catalog-ui.js?v=4";
-import { initPlayer } from "./src/app/player.js?v=4";
-import { initScreenMemory, restoreLastScreen } from "./src/app/screen-memory.js?v=1";
+import { initPlayer } from "./src/app/player.js?v=5";
+import { initScreenMemory, restoreLastScreen } from "./src/app/screen-memory.js?v=2";
 const status=document.querySelector("#status"),count=document.querySelector("#catalog-count"),catalog=document.querySelector("#catalog"),empty=document.querySelector("#empty"),player=document.querySelector("#player");
 function refreshIcons(root=document){window.lucide?.createIcons({root,attrs:{"stroke-width":1.8}})}
 refreshIcons();initPlayer(player);initScreenMemory();
