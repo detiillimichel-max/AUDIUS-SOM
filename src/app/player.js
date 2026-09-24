@@ -1,3 +1,5 @@
+import { addFavorite, isFavorite, removeFavorite } from "../storage/indexeddb.js";
+
 const AUDIO_BASE = "https://api.audius.co/v1";
 
 let audio = null;
@@ -14,10 +16,17 @@ function durationLabel(seconds) {
   return `${Math.floor(total / 60)}:${String(Math.floor(total % 60)).padStart(2, "0")}`;
 }
 
+function refreshIcons(root) {
+  window.lucide?.createIcons({
+    root,
+    attrs: { "stroke-width": 1.8 }
+  });
+}
+
 function setIcon(name) {
   if (!elements?.toggle) return;
   elements.toggle.innerHTML = `<i data-lucide="${name}"></i>`;
-  window.lucide?.createIcons({ root: elements.toggle, attrs: { "stroke-width": 1.8 } });
+  refreshIcons(elements.toggle);
 }
 
 function updateProgress() {
@@ -33,6 +42,101 @@ function updatePlayingState() {
   if (!elements) return;
   setIcon(audio?.paused ? "play" : "pause");
   elements.player.classList.toggle("is-playing", Boolean(audio && !audio.paused));
+}
+
+async function updateFavoriteState() {
+  if (!elements?.favorite || !currentTrack?.id) return;
+  try {
+    const favorite = await isFavorite(currentTrack.id);
+    elements.favorite.classList.toggle("is-favorite", favorite);
+    elements.favorite.setAttribute("aria-pressed", String(favorite));
+    elements.favorite.querySelector("span").textContent = favorite ? "Favoritado" : "Favoritar";
+    elements.favorite.querySelector("i")?.setAttribute("data-lucide", favorite ? "heart" : "heart");
+    refreshIcons(elements.favorite);
+  } catch {
+    elements.status.textContent = "Não foi possível acessar Favoritos.";
+  }
+}
+
+async function toggleFavorite() {
+  if (!currentTrack?.id) return;
+  try {
+    const favorite = await isFavorite(currentTrack.id);
+    if (favorite) {
+      await removeFavorite(currentTrack.id);
+      elements.status.textContent = "Removida dos favoritos";
+    } else {
+      await addFavorite(currentTrack);
+      elements.status.textContent = "Adicionada aos favoritos";
+    }
+    await updateFavoriteState();
+  } catch {
+    elements.status.textContent = "Não foi possível salvar o favorito.";
+  }
+}
+
+async function shareTrack() {
+  if (!currentTrack?.permalink) {
+    elements.status.textContent = "Esta música não possui link para compartilhar.";
+    return;
+  }
+
+  const title = currentTrack.title || "Música Audius";
+  const artist = currentTrack.artist || currentTrack.handle || "Artista Audius";
+  const shareData = {
+    title,
+    text: `${title} — ${artist}`,
+    url: currentTrack.permalink
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      elements.status.textContent = "Compartilhado";
+      return;
+    }
+
+    await navigator.clipboard.writeText(currentTrack.permalink);
+    elements.status.textContent = "Link copiado";
+  } catch (error) {
+    if (error?.name === "AbortError") return;
+    try {
+      await navigator.clipboard.writeText(currentTrack.permalink);
+      elements.status.textContent = "Link copiado";
+    } catch {
+      elements.status.textContent = "Não foi possível compartilhar.";
+    }
+  }
+}
+
+function toggleMenu() {
+  if (!elements?.menu || !elements.more) return;
+  const open = elements.menu.hidden;
+  elements.menu.hidden = !open;
+  elements.more.setAttribute("aria-expanded", String(open));
+}
+
+function closeMenu() {
+  if (!elements?.menu || !elements.more) return;
+  elements.menu.hidden = true;
+  elements.more.setAttribute("aria-expanded", "false");
+}
+
+function openAudius() {
+  if (!currentTrack?.permalink) return;
+  window.open(currentTrack.permalink, "_blank", "noopener,noreferrer");
+  closeMenu();
+}
+
+async function copyTrackLink() {
+  if (!currentTrack?.permalink) return;
+  try {
+    await navigator.clipboard.writeText(currentTrack.permalink);
+    elements.status.textContent = "Link copiado";
+  } catch {
+    elements.status.textContent = "Não foi possível copiar o link.";
+  }
+  closeMenu();
 }
 
 function loadTrack(track, autoplay = true) {
@@ -64,10 +168,12 @@ function loadTrack(track, autoplay = true) {
     });
   }
 
+  closeMenu();
   elements.player.classList.remove("has-error");
   elements.status.textContent = "Conectando ao Audius…";
   audio.src = streamUrl(track.id);
   audio.load();
+  updateFavoriteState();
 
   if (autoplay) {
     audio.play()
@@ -115,15 +221,29 @@ export function initPlayer(root) {
     current: root.querySelector("[data-player-current]"),
     total: root.querySelector("[data-player-total]"),
     progress: root.querySelector("[data-player-progress]"),
-    toggle: root.querySelector("[data-player-toggle]")
+    toggle: root.querySelector("[data-player-toggle]"),
+    favorite: root.querySelector("[data-player-favorite]"),
+    share: root.querySelector("[data-player-share]"),
+    more: root.querySelector("[data-player-more]"),
+    menu: root.querySelector("[data-player-menu]"),
+    openAudius: root.querySelector("[data-player-open-audius]"),
+    copy: root.querySelector("[data-player-copy]")
   };
 
   elements.toggle.addEventListener("click", toggle);
-  elements.progress.addEventListener("input", (event) => seek(event.target.value));
+  elements.progress.addEventListener("input", event => seek(event.target.value));
+  elements.favorite.addEventListener("click", toggleFavorite);
+  elements.share.addEventListener("click", shareTrack);
+  elements.more.addEventListener("click", toggleMenu);
+  elements.openAudius.addEventListener("click", openAudius);
+  elements.copy.addEventListener("click", copyTrackLink);
 
-  window.addEventListener("audius:play-track", (event) => {
-    loadTrack(event.detail, true);
+  document.addEventListener("click", event => {
+    if (!elements.player.contains(event.target)) closeMenu();
   });
 
+  window.addEventListener("audius:play-track", event => loadTrack(event.detail, true));
   window.addEventListener("beforeunload", () => audio?.pause());
+
+  refreshIcons(root);
 }
