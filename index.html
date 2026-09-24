@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#09090b">
 <meta name="description" content="AUDIUS-SOM — descoberta musical com catálogo Audius.">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icons/audius-som.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icons/audius-som.svg">
 <title>AUDIUS-SOM</title>
 <link rel="stylesheet" href="./src/app/app.css?v=7">
 <script src="https://unpkg.com/lucide@1.47.0/dist/umd/lucide.min.js"></script>
@@ -89,6 +92,12 @@ window.addEventListener("audius:catalog-updated",event=>{
   if(!screenRestored) restoreLastScreen().then(restored=>{screenRestored=restored;});
 });
 window.addEventListener("audius:catalog-update-error",()=>{status.textContent="● catálogo local • atualização pendente";status.className="sync pending"});
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js", { scope: "./" })
+      .catch(error => console.warn("PWA: service worker não registrado.", error));
+  });
+}
 startApp().catch(error=>{status.textContent="Não foi possível iniciar o catálogo";status.className="sync pending";console.error(error)});
 </script>
 </body>
