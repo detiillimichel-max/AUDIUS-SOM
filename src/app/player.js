@@ -172,6 +172,32 @@ function setGroupTrack(group, track) {
   group.artwork.alt = "";
 }
 
+
+function scrollToFullPlayer({ smooth = true } = {}) {
+  if (!hero?.player || hero.player.hidden) return;
+
+  const topbar = document.querySelector(".topbar");
+  const offset = (topbar?.getBoundingClientRect().height || 0) + 12;
+  const targetY = Math.max(0, window.scrollY + hero.player.getBoundingClientRect().top - offset);
+  const distance = Math.abs(targetY - window.scrollY);
+
+  // If the full player is already comfortably visible, do not move the page.
+  if (distance < 32) return;
+
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  window.scrollTo({
+    top: targetY,
+    behavior: smooth && !reducedMotion ? "smooth" : "auto"
+  });
+}
+
+function schedulePlayerScroll() {
+  // Wait for the Hero to finish its layout change before calculating its position.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => scrollToFullPlayer());
+  });
+}
+
 function loadTrack(track, autoplay = true) {
   if (!track?.id) return;
 
@@ -226,6 +252,7 @@ function loadTrack(track, autoplay = true) {
   }
 
   window.dispatchEvent(new CustomEvent("audius:track-loaded", { detail: track }));
+  schedulePlayerScroll();
 }
 
 function toggle() {
@@ -294,6 +321,13 @@ export function initPlayer(root) {
 
   bindActionGroup(elements, "mini");
   bindActionGroup(hero, "hero");
+
+  // Tocar no corpo do mini-player leva suavemente de volta ao Player Completo.
+  // Controles internos continuam com seu comportamento normal.
+  elements.player.addEventListener("click", event => {
+    if (event.target.closest("button, input, a")) return;
+    scrollToFullPlayer();
+  });
 
   document.addEventListener("click", event => {
     if (!elements.player.contains(event.target) && !hero.player.contains(event.target)) closeMenus();
