@@ -5,6 +5,7 @@ const AUDIO_BASE = "https://api.audius.co/v1";
 let audio = null;
 let currentTrack = null;
 let elements = null;
+let hero = null;
 
 function streamUrl(trackId) {
   return `${AUDIO_BASE}/tracks/${encodeURIComponent(trackId)}/stream`;
@@ -17,42 +18,60 @@ function durationLabel(seconds) {
 }
 
 function refreshIcons(root) {
-  window.lucide?.createIcons({
-    root,
-    attrs: { "stroke-width": 1.8 }
-  });
+  window.lucide?.createIcons({ root, attrs: { "stroke-width": 1.8 } });
 }
 
 function setIcon(name) {
-  if (!elements?.toggle) return;
-  elements.toggle.innerHTML = `<i data-lucide="${name}"></i>`;
-  refreshIcons(elements.toggle);
+  const targets = [elements?.toggle, hero?.toggle].filter(Boolean);
+  for (const target of targets) {
+    target.innerHTML = `<i data-lucide="${name}"></i>`;
+    target.setAttribute("aria-label", name === "pause" ? "Pausar" : "Reproduzir");
+    refreshIcons(target);
+  }
 }
 
 function updateProgress() {
   if (!audio || !elements) return;
   const duration = Number.isFinite(audio.duration) ? audio.duration : Number(currentTrack?.duration) || 0;
   const current = audio.currentTime || 0;
+  const percent = duration > 0 ? String((current / duration) * 100) : "0";
+
   elements.current.textContent = durationLabel(current);
   elements.total.textContent = durationLabel(duration);
-  elements.progress.value = duration > 0 ? String((current / duration) * 100) : "0";
+  elements.progress.value = percent;
+
+  if (hero) {
+    hero.current.textContent = durationLabel(current);
+    hero.total.textContent = durationLabel(duration);
+    hero.progress.value = percent;
+  }
 }
 
 function updatePlayingState() {
   if (!elements) return;
-  setIcon(audio?.paused ? "play" : "pause");
-  elements.player.classList.toggle("is-playing", Boolean(audio && !audio.paused));
+  const playing = Boolean(audio && !audio.paused);
+  setIcon(playing ? "pause" : "play");
+  elements.player.classList.toggle("is-playing", playing);
+  if (hero) {
+    hero.status.textContent = playing ? "REPRODUZINDO" : "PAUSADO";
+    hero.player.classList.toggle("is-playing", playing);
+  }
+}
+
+function updateActionState(group, favorite) {
+  if (!group?.favorite) return;
+  group.favorite.classList.toggle("is-favorite", favorite);
+  group.favorite.setAttribute("aria-pressed", String(favorite));
+  const label = favorite ? "Favoritado" : "Favoritar";
+  group.favorite.querySelector("span").textContent = label;
 }
 
 async function updateFavoriteState() {
-  if (!elements?.favorite || !currentTrack?.id) return;
+  if (!currentTrack?.id) return;
   try {
     const favorite = await isFavorite(currentTrack.id);
-    elements.favorite.classList.toggle("is-favorite", favorite);
-    elements.favorite.setAttribute("aria-pressed", String(favorite));
-    elements.favorite.querySelector("span").textContent = favorite ? "Favoritado" : "Favoritar";
-    elements.favorite.querySelector("i")?.setAttribute("data-lucide", favorite ? "heart" : "heart");
-    refreshIcons(elements.favorite);
+    updateActionState(elements, favorite);
+    updateActionState(hero, favorite);
   } catch {
     elements.status.textContent = "Não foi possível acessar Favoritos.";
   }
@@ -83,11 +102,7 @@ async function shareTrack() {
 
   const title = currentTrack.title || "Música Audius";
   const artist = currentTrack.artist || currentTrack.handle || "Artista Audius";
-  const shareData = {
-    title,
-    text: `${title} — ${artist}`,
-    url: currentTrack.permalink
-  };
+  const shareData = { title, text: `${title} — ${artist}`, url: currentTrack.permalink };
 
   try {
     if (navigator.share) {
@@ -95,7 +110,6 @@ async function shareTrack() {
       elements.status.textContent = "Compartilhado";
       return;
     }
-
     await navigator.clipboard.writeText(currentTrack.permalink);
     elements.status.textContent = "Link copiado";
   } catch (error) {
@@ -109,23 +123,25 @@ async function shareTrack() {
   }
 }
 
-function toggleMenu() {
-  if (!elements?.menu || !elements.more) return;
-  const open = elements.menu.hidden;
-  elements.menu.hidden = !open;
-  elements.more.setAttribute("aria-expanded", String(open));
+function toggleMenu(group) {
+  if (!group?.menu || !group.more) return;
+  const open = group.menu.hidden;
+  closeMenus();
+  group.menu.hidden = !open;
+  group.more.setAttribute("aria-expanded", String(open));
 }
 
-function closeMenu() {
-  if (!elements?.menu || !elements.more) return;
-  elements.menu.hidden = true;
-  elements.more.setAttribute("aria-expanded", "false");
+function closeMenus() {
+  for (const group of [elements, hero].filter(Boolean)) {
+    group.menu.hidden = true;
+    group.more.setAttribute("aria-expanded", "false");
+  }
 }
 
 function openAudius() {
   if (!currentTrack?.permalink) return;
   window.open(currentTrack.permalink, "_blank", "noopener,noreferrer");
-  closeMenu();
+  closeMenus();
 }
 
 async function copyTrackLink() {
@@ -136,18 +152,35 @@ async function copyTrackLink() {
   } catch {
     elements.status.textContent = "Não foi possível copiar o link.";
   }
-  closeMenu();
+  closeMenus();
+}
+
+function bindActionGroup(group, type) {
+  group.favorite.addEventListener("click", toggleFavorite);
+  group.share.addEventListener("click", shareTrack);
+  group.more.addEventListener("click", () => toggleMenu(group));
+  group.openAudius.addEventListener("click", openAudius);
+  group.copy.addEventListener("click", copyTrackLink);
+  group.toggle.addEventListener("click", toggle);
+  group.progress.addEventListener("input", event => seek(event.target.value, group));
+}
+
+function setGroupTrack(group, track) {
+  group.title.textContent = track.title || "Sem título";
+  group.artist.textContent = track.artist || track.handle || "Artista Audius";
+  group.artwork.src = track.artwork || "";
+  group.artwork.alt = "";
 }
 
 function loadTrack(track, autoplay = true) {
   if (!track?.id) return;
 
   currentTrack = track;
-  elements.title.textContent = track.title || "Sem título";
-  elements.artist.textContent = track.artist || track.handle || "Artista Audius";
-  elements.artwork.src = track.artwork || "";
-  elements.artwork.alt = "";
+  setGroupTrack(elements, track);
+  setGroupTrack(hero, track);
   elements.player.hidden = false;
+  hero.content.hidden = false;
+  hero.intro.hidden = true;
 
   if (!audio) {
     audio = new Audio();
@@ -160,6 +193,8 @@ function loadTrack(track, autoplay = true) {
       updatePlayingState();
       elements.progress.value = "0";
       elements.current.textContent = "0:00";
+      hero.progress.value = "0";
+      hero.current.textContent = "0:00";
     });
     audio.addEventListener("error", () => {
       elements.player.classList.add("has-error");
@@ -168,9 +203,11 @@ function loadTrack(track, autoplay = true) {
     });
   }
 
-  closeMenu();
+  closeMenus();
   elements.player.classList.remove("has-error");
+  hero.player.classList.remove("has-error");
   elements.status.textContent = "Conectando ao Audius…";
+  hero.status.textContent = "CONECTANDO";
   audio.src = streamUrl(track.id);
   audio.load();
   updateFavoriteState();
@@ -183,6 +220,7 @@ function loadTrack(track, autoplay = true) {
       })
       .catch(() => {
         elements.status.textContent = "Toque em play para iniciar";
+        hero.status.textContent = "TOQUE EM PLAY";
         updatePlayingState();
       });
   }
@@ -206,9 +244,12 @@ function toggle() {
   }
 }
 
-function seek(value) {
+function seek(value, group) {
   if (!audio || !Number.isFinite(audio.duration)) return;
-  audio.currentTime = (Number(value) / 100) * audio.duration;
+  const position = (Number(value) / 100) * audio.duration;
+  audio.currentTime = position;
+  if (group !== elements && elements.progress) elements.progress.value = String(value);
+  if (group !== hero && hero?.progress) hero.progress.value = String(value);
 }
 
 export function initPlayer(root) {
@@ -230,20 +271,37 @@ export function initPlayer(root) {
     copy: root.querySelector("[data-player-copy]")
   };
 
-  elements.toggle.addEventListener("click", toggle);
-  elements.progress.addEventListener("input", event => seek(event.target.value));
-  elements.favorite.addEventListener("click", toggleFavorite);
-  elements.share.addEventListener("click", shareTrack);
-  elements.more.addEventListener("click", toggleMenu);
-  elements.openAudius.addEventListener("click", openAudius);
-  elements.copy.addEventListener("click", copyTrackLink);
+  const heroRoot = document.querySelector("#hero-player");
+  hero = {
+    player: heroRoot,
+    intro: heroRoot.querySelector("[data-hero-intro]"),
+    content: heroRoot.querySelector("[data-hero-content]"),
+    artwork: heroRoot.querySelector("[data-hero-artwork]"),
+    title: heroRoot.querySelector("[data-hero-title]"),
+    artist: heroRoot.querySelector("[data-hero-artist]"),
+    status: heroRoot.querySelector("[data-hero-status]"),
+    current: heroRoot.querySelector("[data-hero-current]"),
+    total: heroRoot.querySelector("[data-hero-total]"),
+    progress: heroRoot.querySelector("[data-hero-progress]"),
+    toggle: heroRoot.querySelector("[data-hero-toggle]"),
+    favorite: heroRoot.querySelector("[data-hero-favorite]"),
+    share: heroRoot.querySelector("[data-hero-share]"),
+    more: heroRoot.querySelector("[data-hero-more]"),
+    menu: heroRoot.querySelector("[data-hero-menu]"),
+    openAudius: heroRoot.querySelector("[data-hero-open-audius]"),
+    copy: heroRoot.querySelector("[data-hero-copy]")
+  };
+
+  bindActionGroup(elements, "mini");
+  bindActionGroup(hero, "hero");
 
   document.addEventListener("click", event => {
-    if (!elements.player.contains(event.target)) closeMenu();
+    if (!elements.player.contains(event.target) && !hero.player.contains(event.target)) closeMenus();
   });
 
   window.addEventListener("audius:play-track", event => loadTrack(event.detail, true));
   window.addEventListener("beforeunload", () => audio?.pause());
 
   refreshIcons(root);
+  refreshIcons(heroRoot);
 }
