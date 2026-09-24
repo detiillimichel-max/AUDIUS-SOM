@@ -140,6 +140,12 @@ function closeMenus() {
   }
 }
 
+function addCurrentTrackToPlaylist() {
+  if (!currentTrack?.id) return;
+  window.dispatchEvent(new CustomEvent("audius:playlist-picker", { detail: { track: currentTrack } }));
+  closeMenus();
+}
+
 function openAudius() {
   if (!currentTrack?.permalink) return;
   window.open(currentTrack.permalink, "_blank", "noopener,noreferrer");
@@ -163,6 +169,7 @@ function bindActionGroup(group, type) {
   group.more.addEventListener("click", () => toggleMenu(group));
   group.openAudius.addEventListener("click", openAudius);
   group.copy.addEventListener("click", copyTrackLink);
+  group.addToPlaylist?.addEventListener("click", addCurrentTrackToPlaylist);
   group.toggle.addEventListener("click", toggle);
   group.progress.addEventListener("input", event => seek(event.target.value, group));
 }
@@ -316,7 +323,8 @@ export function initPlayer(root) {
     more: root.querySelector("[data-player-more]"),
     menu: root.querySelector("[data-player-menu]"),
     openAudius: root.querySelector("[data-player-open-audius]"),
-    copy: root.querySelector("[data-player-copy]")
+    copy: root.querySelector("[data-player-copy]"),
+    addToPlaylist: root.querySelector("[data-player-add-playlist]")
   };
 
   const heroRoot = document.querySelector("#hero-player");
@@ -337,7 +345,8 @@ export function initPlayer(root) {
     more: heroRoot.querySelector("[data-hero-more]"),
     menu: heroRoot.querySelector("[data-hero-menu]"),
     openAudius: heroRoot.querySelector("[data-hero-open-audius]"),
-    copy: heroRoot.querySelector("[data-hero-copy]")
+    copy: heroRoot.querySelector("[data-hero-copy]"),
+    addToPlaylist: heroRoot.querySelector("[data-hero-add-playlist]")
   };
 
   bindActionGroup(elements, "mini");
