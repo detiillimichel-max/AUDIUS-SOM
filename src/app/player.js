@@ -1,4 +1,4 @@
-import { addFavorite, isFavorite, removeFavorite } from "../storage/indexeddb.js";
+import { addFavorite, addHistoryEntry, isFavorite, removeFavorite } from "../storage/indexeddb.js";
 import { rememberLastTrack } from "./screen-memory.js";
 
 const AUDIO_BASE = "https://api.audius.co/v1";
@@ -7,6 +7,7 @@ let audio = null;
 let currentTrack = null;
 let elements = null;
 let hero = null;
+let lastHistoryTrackId = null;
 
 function streamUrl(trackId) {
   return `${AUDIO_BASE}/tracks/${encodeURIComponent(trackId)}/stream`;
@@ -216,7 +217,19 @@ function loadTrack(track, autoplay = true, options = {}) {
     audio.preload = "metadata";
     audio.addEventListener("timeupdate", updateProgress);
     audio.addEventListener("loadedmetadata", updateProgress);
-    audio.addEventListener("play", updatePlayingState);
+    audio.addEventListener("play", () => {
+      updatePlayingState();
+      if (currentTrack?.id && currentTrack.id !== lastHistoryTrackId) {
+        lastHistoryTrackId = currentTrack.id;
+        addHistoryEntry({
+          trackId: currentTrack.id,
+          title: currentTrack.title,
+          artist: currentTrack.artist || currentTrack.handle,
+          artwork: currentTrack.artwork,
+          permalink: currentTrack.permalink
+        }).catch(() => {});
+      }
+    });
     audio.addEventListener("pause", updatePlayingState);
     audio.addEventListener("ended", () => {
       updatePlayingState();
