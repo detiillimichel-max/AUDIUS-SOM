@@ -79,11 +79,15 @@ window.addEventListener("audius:catalog-ready",event=>{
   status.textContent=event.detail.source==="local"?"● catálogo local":"○ preparando catálogo";
   status.className="sync local";
   if(!screenRestored){
-    screenRestored=true;
-    restoreLastScreen();
+    restoreLastScreen().then(restored=>{screenRestored=restored;});
   }
 });
-window.addEventListener("audius:catalog-updated",event=>{showCatalog(event.detail);status.textContent=event.detail.updatedBlocks.length?"↻ atualizado silenciosamente":"✓ catálogo atualizado";status.className="sync online"});
+window.addEventListener("audius:catalog-updated",event=>{
+  showCatalog(event.detail);
+  status.textContent=event.detail.updatedBlocks.length?"↻ atualizado silenciosamente":"✓ catálogo atualizado";
+  status.className="sync online";
+  if(!screenRestored) restoreLastScreen().then(restored=>{screenRestored=restored;});
+});
 window.addEventListener("audius:catalog-update-error",()=>{status.textContent="● catálogo local • atualização pendente";status.className="sync pending"});
 startApp().catch(error=>{status.textContent="Não foi possível iniciar o catálogo";status.className="sync pending";console.error(error)});
 </script>
