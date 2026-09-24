@@ -183,12 +183,72 @@ export async function savePlaylist(playlist) {
 export async function getPlaylists() {
   const db = await openAudiusDB();
   const transaction = db.transaction(STORES.PLAYLISTS, "readonly");
-  const result = await requestToPromise(
-    transaction.objectStore(STORES.PLAYLISTS).getAll()
-  );
+  const result = await requestToPromise(transaction.objectStore(STORES.PLAYLISTS).getAll());
   await transactionToPromise(transaction);
   db.close();
-  return result;
+  return result.sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0));
+}
+
+function createLocalId(prefix = "id") {
+  if (globalThis.crypto?.randomUUID) return prefix + "-" + globalThis.crypto.randomUUID();
+  return prefix + "-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
+}
+
+export async function createPlaylist(name) {
+  const cleanName = String(name ?? "").trim();
+  if (!cleanName) throw new Error("A playlist precisa de um nome.");
+  if (cleanName.length > 60) throw new Error("O nome da playlist deve ter no máximo 60 caracteres.");
+  const now = new Date().toISOString();
+  const playlist = { id: createLocalId("playlist"), name: cleanName, tracks: [], createdAt: now, updatedAt: now };
+  await savePlaylist(playlist);
+  return playlist;
+}
+
+export async function getPlaylist(playlistId) {
+  if (!playlistId) return null;
+  const db = await openAudiusDB();
+  const transaction = db.transaction(STORES.PLAYLISTS, "readonly");
+  const result = await requestToPromise(transaction.objectStore(STORES.PLAYLISTS).get(playlistId));
+  await transactionToPromise(transaction);
+  db.close();
+  return result ?? null;
+}
+
+export async function addTrackToPlaylist(playlistId, track) {
+  if (!playlistId) throw new Error("Playlist inválida.");
+  if (!track?.id) throw new Error("Faixa inválida para a playlist.");
+  const db = await openAudiusDB();
+  const transaction = db.transaction(STORES.PLAYLISTS, "readwrite");
+  const store = transaction.objectStore(STORES.PLAYLISTS);
+  const playlist = await requestToPromise(store.get(playlistId));
+  if (!playlist) throw new Error("Playlist não encontrada.");
+  const tracks = Array.isArray(playlist.tracks) ? playlist.tracks.slice() : [];
+  if (!tracks.some(item => item?.id === track.id)) tracks.push(track);
+  store.put({ ...playlist, tracks, updatedAt: new Date().toISOString() });
+  await transactionToPromise(transaction);
+  db.close();
+}
+
+export async function removeTrackFromPlaylist(playlistId, trackId) {
+  if (!playlistId || !trackId) throw new Error("Playlist ou faixa inválida.");
+  const db = await openAudiusDB();
+  const transaction = db.transaction(STORES.PLAYLISTS, "readwrite");
+  const store = transaction.objectStore(STORES.PLAYLISTS);
+  const playlist = await requestToPromise(store.get(playlistId));
+  if (!playlist) throw new Error("Playlist não encontrada.");
+  const tracks = Array.isArray(playlist.tracks) ? playlist.tracks.filter(track => track?.id !== trackId) : [];
+  store.put({ ...playlist, tracks, updatedAt: new Date().toISOString() });
+  await transactionToPromise(transaction);
+  db.close();
+}
+
+export async function deletePlaylist(playlistId) {
+  if (!playlistId) throw new Error("Playlist inválida.");
+  const db = await openAudiusDB();
+  const transaction = db.transaction(STORES.PLAYLISTS, "readwrite");
+  transaction.objectStore(STORES.PLAYLISTS).delete(playlistId);
+  await transactionToPromise(transaction);
+  db.close();
 }
 
 export async function addHistoryEntry(entry) {
