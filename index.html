@@ -9,7 +9,7 @@
 <link rel="icon" href="./icons/audius-som.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icons/audius-som.svg">
 <title>AUDIUS-SOM</title>
-<link rel="stylesheet" href="./src/app/app.css?v=7">
+<link rel="stylesheet" href="./src/app/app.css?v=8">
 <script src="https://unpkg.com/lucide@1.47.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
@@ -46,6 +46,10 @@
 </section>
 <div class="catalog-head"><div><h2>Descobrir</h2><p id="catalog-count">Preparando catálogo…</p></div></div>
 <section id="catalog" class="catalog" aria-live="polite"></section>
+<section id="library" class="library" aria-label="Minha Biblioteca">
+  <div class="library-title"><div><span class="eyebrow">LOCAL-FIRST</span><h2>🎧 Minha Biblioteca</h2><p>Seus dados pessoais ficam neste aparelho.</p></div></div>
+  <div id="library-content"></div>
+</section>
 <div id="empty" class="empty" hidden><div aria-hidden="true"><i data-lucide="music-2"></i></div><h2>Seu catálogo está chegando</h2><p>Na primeira abertura, aguarde a sincronização do catálogo.</p></div>
 </main>
 <section id="player" class="player" hidden aria-label="Mini player AUDIUS-SOM">
@@ -72,9 +76,10 @@ import { startApp } from "./src/app/startup.js?v=4";
 import { renderCatalog } from "./src/app/catalog-ui.js?v=4";
 import { initPlayer } from "./src/app/player.js?v=5";
 import { initScreenMemory, restoreLastScreen } from "./src/app/screen-memory.js?v=2";
-const status=document.querySelector("#status"),count=document.querySelector("#catalog-count"),catalog=document.querySelector("#catalog"),empty=document.querySelector("#empty"),player=document.querySelector("#player");
+import { renderLibrary } from "./src/app/library-ui.js?v=1";
+const status=document.querySelector("#status"),count=document.querySelector("#catalog-count"),catalog=document.querySelector("#catalog"),empty=document.querySelector("#empty"),player=document.querySelector("#player"),library=document.querySelector("#library-content");
 function refreshIcons(root=document){window.lucide?.createIcons({root,attrs:{"stroke-width":1.8}})}
-refreshIcons();initPlayer(player);initScreenMemory();
+refreshIcons();initPlayer(player);initScreenMemory();renderLibrary(library).catch(error=>console.warn("Biblioteca local indisponível.",error));
 function showCatalog(detail){renderCatalog(catalog,detail.blocks);const tracks=detail.blocks.reduce((sum,block)=>sum+(block.tracks?.length||0),0);count.textContent=tracks?detail.blocks.length+" blocos • "+tracks+" faixas":"Nenhuma faixa disponível ainda.";empty.hidden=tracks>0;refreshIcons(catalog);refreshIcons(empty)}
 let screenRestored=false;
 window.addEventListener("audius:catalog-ready",event=>{
