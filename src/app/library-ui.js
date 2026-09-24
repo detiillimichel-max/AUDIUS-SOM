@@ -23,9 +23,9 @@ function actionButton(label, iconName, className = "library-action") {
   return node;
 }
 
-function trackCard(track, removeKind = "", onRemove = null) {
+function trackCard(track, removeKind = "", onRemove = null, featured = false) {
   const item = document.createElement("article");
-  item.className = "library-track";
+  item.className = "library-track" + (featured ? " library-track-featured" : "");
   const src = artwork(track);
   if (src) {
     const image = document.createElement("img");
@@ -125,7 +125,7 @@ async function renderPlaylistDetail(panel, playlistId) {
   const total=Array.isArray(playlist.tracks)?playlist.tracks.length:0; const count=document.createElement("span"); count.textContent=total+(total===1?" música":" músicas");
   top.append(back,count); content.append(top); back.addEventListener("click",()=>renderPlaylists(panel));
   if(!total) content.append(empty("Playlist vazia","Abra uma música, toque em “Mais” e escolha “Adicionar à playlist”.","music"));
-  else playlist.tracks.forEach(track=>content.append(trackCard(track,"playlist",async()=>{ await removeTrackFromPlaylist(playlist.id,track.id); await renderPlaylistDetail(panel,playlist.id); window.dispatchEvent(new Event("audius:library-changed")); })));
+  else playlist.tracks.forEach((track,index)=>content.append(trackCard(track,"playlist",async()=>{ await removeTrackFromPlaylist(playlist.id,track.id); await renderPlaylistDetail(panel,playlist.id); window.dispatchEvent(new Event("audius:library-changed")); }, index === 0)));
   const deleteButton=actionButton("Excluir playlist","trash-2","library-danger-button");
   deleteButton.addEventListener("click",()=>{ const modal=createModal("Excluir playlist?","A playlist será apagada deste aparelho. As músicas originais não serão apagadas."); const cancel=actionButton("Cancelar","x","library-modal-secondary"); const confirm=actionButton("Excluir","trash-2","library-danger-button"); modal.actions.append(cancel,confirm); modal.dialog.append(modal.actions); cancel.addEventListener("click",()=>modal.overlay.remove()); confirm.addEventListener("click",async()=>{ await deletePlaylist(playlist.id); modal.overlay.remove(); window.dispatchEvent(new Event("audius:library-changed")); }); refreshIcons(modal.overlay); });
   content.append(deleteButton); renderSection(panel,playlist.name,"list-music",content); refreshIcons(panel);
