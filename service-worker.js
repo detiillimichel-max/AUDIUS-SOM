@@ -1,11 +1,11 @@
-const CACHE_NAME = "audius-som-shell-v2";
+const CACHE_NAME = "audius-som-shell-v3";
 
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icons/audius-som.svg",
-  "./src/app/app.css?v=7",
+  "./src/app/app.css?v=8",
   "./src/app/startup.js?v=4",
   "./src/app/catalog-ui.js?v=4",
   "./src/app/player.js?v=6",
