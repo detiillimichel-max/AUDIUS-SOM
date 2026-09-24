@@ -1,11 +1,12 @@
 import { getSetting, setSetting } from "../storage/indexeddb.js";
 
 const LAST_SCREEN_KEY = "last-screen";
-const SAVE_DELAY = 700;
+const SAVE_DELAY = 120;
 const RESTORE_MAX_AGE = 1000 * 60 * 60 * 24 * 30;
 
 let saveTimer = null;
 let restoring = false;
+let lastTrack = null;
 
 function readPosition() {
   return {
@@ -14,18 +15,29 @@ function readPosition() {
   };
 }
 
-async function savePosition() {
+async function saveScreenState(extra = {}) {
   try {
-    await setSetting(LAST_SCREEN_KEY, readPosition());
+    const current = await getSetting(LAST_SCREEN_KEY);
+    await setSetting(LAST_SCREEN_KEY, {
+      ...(current && typeof current === "object" ? current : {}),
+      ...readPosition(),
+      ...extra
+    });
   } catch {
-    // A memória da tela é um recurso auxiliar; não deve afetar o player ou catálogo.
+    // A memória da tela é auxiliar e nunca deve bloquear o app.
   }
 }
 
 function scheduleSave() {
   if (restoring) return;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(savePosition, SAVE_DELAY);
+  saveTimer = setTimeout(() => saveScreenState(), SAVE_DELAY);
+}
+
+export async function rememberLastTrack(track) {
+  if (!track?.id) return;
+  lastTrack = track;
+  await saveScreenState({ track });
 }
 
 export async function restoreLastScreen() {
@@ -34,21 +46,33 @@ export async function restoreLastScreen() {
     const scrollY = Number(saved?.scrollY);
     const savedAt = Number(saved?.savedAt);
 
-    if (!Number.isFinite(scrollY) || scrollY < 1) return false;
-    if (Number.isFinite(savedAt) && Date.now() - savedAt > RESTORE_MAX_AGE) return false;
+    const validAge = !Number.isFinite(savedAt) || Date.now() - savedAt <= RESTORE_MAX_AGE;
+    const hasPosition = Number.isFinite(scrollY) && scrollY >= 1;
+
+    if (!validAge) return false;
 
     restoring = true;
 
-    // O catálogo local precisa terminar de ocupar a página antes da restauração.
-    requestAnimationFrame(() => {
+    if (hasPosition) {
       requestAnimationFrame(() => {
-        window.scrollTo({ top: scrollY, behavior: "auto" });
         requestAnimationFrame(() => {
-          restoring = false;
+          window.scrollTo({ top: scrollY, behavior: "auto" });
+          requestAnimationFrame(() => {
+            restoring = false;
+          });
         });
       });
-    });
-    return true;
+    } else {
+      restoring = false;
+    }
+
+    if (saved?.track?.id) {
+      window.dispatchEvent(new CustomEvent("audius:restore-track", {
+        detail: saved.track
+      }));
+    }
+
+    return hasPosition || Boolean(saved?.track?.id);
   } catch {
     restoring = false;
     return false;
@@ -57,8 +81,11 @@ export async function restoreLastScreen() {
 
 export function initScreenMemory() {
   window.addEventListener("scroll", scheduleSave, { passive: true });
+
   window.addEventListener("pagehide", () => {
     clearTimeout(saveTimer);
-    savePosition();
+    // O último estado normalmente já foi salvo durante a rolagem.
+    // Esta chamada reforça a posição final sem depender dela para o player.
+    saveScreenState({ track: lastTrack ?? undefined });
   });
 }
