@@ -1,127 +1,56 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#09090b">
-    <meta name="description" content="AUDIUS-SOM — descoberta musical com catálogo Audius.">
-    <title>AUDIUS-SOM</title>
-    <link rel="stylesheet" href="./src/app/app.css?v=5">
-    <script src="https://unpkg.com/lucide@1.47.0/dist/umd/lucide.min.js"></script>
-  </head>
-  <body>
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true"><i data-lucide="headphones"></i></span>
-        <div><strong>AUDIUS-SOM</strong><small>descubra seu próximo som</small></div>
-      </div>
-      <div class="sync" id="status" aria-live="polite">Abrindo sua biblioteca local…</div>
-    </header>
-
-    <main class="app-shell">
-      <section class="hero">
-        <div>
-          <span class="eyebrow">MODO CINEMA • AUDIUS</span>
-          <h1>Seu som começa<br><span>agora.</span></h1>
-          <p>O catálogo aparece primeiro do seu dispositivo. Enquanto você navega, a atualização acontece silenciosamente.</p>
-        </div>
-        <div class="hero-disc" aria-hidden="true"><i data-lucide="music-2"></i></div>
-      </section>
-
-      <div class="catalog-head">
-        <div>
-          <h2>Descobrir</h2>
-          <p id="catalog-count">Preparando catálogo…</p>
-        </div>
-      </div>
-
-      <section id="catalog" class="catalog" aria-live="polite"></section>
-
-      <div id="empty" class="empty" hidden>
-        <div aria-hidden="true"><i data-lucide="music-2"></i></div>
-        <h2>Seu catálogo está chegando</h2>
-        <p>Na primeira abertura, aguarde a sincronização do catálogo.</p>
-      </div>
-    </main>
-
-
-    <section id="player" class="player" hidden aria-label="Player AUDIUS-SOM">
-      <img class="player-artwork" data-player-artwork src="" alt="">
-      <div class="player-info">
-        <div class="player-status" data-player-status>Pronto</div>
-        <div class="player-title" data-player-title>Selecione uma música</div>
-        <div class="player-artist" data-player-artist>Artista Audius</div>
-        <div class="player-progress-wrap">
-          <span data-player-current>0:00</span>
-          <input data-player-progress type="range" min="0" max="100" value="0" step="0.1" aria-label="Progresso da música">
-          <span data-player-total>0:00</span>
-        </div>
-      </div>
-      <button class="player-toggle" data-player-toggle type="button" aria-label="Reproduzir">
-        <i data-lucide="play"></i>
-      </button>
-    </section>
-
-    <script type="module">
-      import { startApp } from "./src/app/startup.js?v=4";
-      import { renderCatalog } from "./src/app/catalog-ui.js?v=4";
-      import { initPlayer } from "./src/app/player.js?v=1";
-
-      const status = document.querySelector("#status");
-      const count = document.querySelector("#catalog-count");
-      const catalog = document.querySelector("#catalog");
-      const empty = document.querySelector("#empty");
-      const player = document.querySelector("#player");
-
-      function refreshIcons(root = document) {
-        window.lucide?.createIcons({
-          root,
-          attrs: {
-            "stroke-width": 1.8
-          }
-        });
-      }
-
-      refreshIcons();
-      initPlayer(player);
-
-      function showCatalog(detail) {
-        renderCatalog(catalog, detail.blocks);
-        const tracks = detail.blocks.reduce((sum, block) => sum + (block.tracks?.length || 0), 0);
-        count.textContent = tracks
-          ? `${detail.blocks.length} blocos • ${tracks} faixas`
-          : "Nenhuma faixa disponível ainda.";
-        empty.hidden = tracks > 0;
-        refreshIcons(catalog);
-        refreshIcons(empty);
-      }
-
-      window.addEventListener("audius:catalog-ready", (event) => {
-        showCatalog(event.detail);
-        status.textContent = event.detail.source === "local"
-          ? "● catálogo local"
-          : "○ preparando catálogo";
-        status.className = "sync local";
-      });
-
-      window.addEventListener("audius:catalog-updated", (event) => {
-        showCatalog(event.detail);
-        status.textContent = event.detail.updatedBlocks.length
-          ? "↻ atualizado silenciosamente"
-          : "✓ catálogo atualizado";
-        status.className = "sync online";
-      });
-
-      window.addEventListener("audius:catalog-update-error", () => {
-        status.textContent = "● catálogo local • atualização pendente";
-        status.className = "sync pending";
-      });
-
-      startApp().catch((error) => {
-        status.textContent = "Não foi possível iniciar o catálogo";
-        status.className = "sync pending";
-        console.error(error);
-      });
-    </script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#09090b">
+<meta name="description" content="AUDIUS-SOM — descoberta musical com catálogo Audius.">
+<title>AUDIUS-SOM</title>
+<link rel="stylesheet" href="./src/app/app.css?v=6">
+<script src="https://unpkg.com/lucide@1.47.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+<div class="brand"><span class="brand-mark" aria-hidden="true"><i data-lucide="headphones"></i></span><div><strong>AUDIUS-SOM</strong><small>descubra seu próximo som</small></div></div>
+<div class="sync" id="status" aria-live="polite">Abrindo sua biblioteca local…</div>
+</header>
+<main class="app-shell">
+<section class="hero"><div><span class="eyebrow">MODO CINEMA • AUDIUS</span><h1>Seu som começa<br><span>agora.</span></h1><p>O catálogo aparece primeiro do seu dispositivo. Enquanto você navega, a atualização acontece silenciosamente.</p></div><div class="hero-disc" aria-hidden="true"><i data-lucide="music-2"></i></div></section>
+<div class="catalog-head"><div><h2>Descobrir</h2><p id="catalog-count">Preparando catálogo…</p></div></div>
+<section id="catalog" class="catalog" aria-live="polite"></section>
+<div id="empty" class="empty" hidden><div aria-hidden="true"><i data-lucide="music-2"></i></div><h2>Seu catálogo está chegando</h2><p>Na primeira abertura, aguarde a sincronização do catálogo.</p></div>
+</main>
+<section id="player" class="player" hidden aria-label="Player AUDIUS-SOM">
+<img class="player-artwork" data-player-artwork src="" alt="">
+<div class="player-info">
+<div class="player-status" data-player-status>Pronto</div>
+<div class="player-title" data-player-title>Selecione uma música</div>
+<div class="player-artist" data-player-artist>Artista Audius</div>
+<div class="player-progress-wrap"><span data-player-current>0:00</span><input data-player-progress type="range" min="0" max="100" value="0" step="0.1" aria-label="Progresso da música"><span data-player-total>0:00</span></div>
+<div class="player-actions" aria-label="Ações da música">
+<button type="button" data-player-favorite class="player-action" aria-label="Favoritar"><i data-lucide="heart"></i><span>Favoritar</span></button>
+<button type="button" data-player-share class="player-action" aria-label="Compartilhar"><i data-lucide="share-2"></i><span>Compartilhar</span></button>
+<button type="button" data-player-more class="player-action" aria-label="Mais opções" aria-expanded="false"><i data-lucide="more-vertical"></i><span>Mais</span></button>
+</div>
+</div>
+<button class="player-toggle" data-player-toggle type="button" aria-label="Reproduzir"><i data-lucide="play"></i></button>
+<div class="player-menu" data-player-menu hidden>
+<button type="button" data-player-open-audius><i data-lucide="external-link"></i><span>Ver no Audius</span></button>
+<button type="button" data-player-copy><i data-lucide="link"></i><span>Copiar link da música</span></button>
+</div>
+</section>
+<script type="module">
+import { startApp } from "./src/app/startup.js?v=4";
+import { renderCatalog } from "./src/app/catalog-ui.js?v=4";
+import { initPlayer } from "./src/app/player.js?v=2";
+const status=document.querySelector("#status"),count=document.querySelector("#catalog-count"),catalog=document.querySelector("#catalog"),empty=document.querySelector("#empty"),player=document.querySelector("#player");
+function refreshIcons(root=document){window.lucide?.createIcons({root,attrs:{"stroke-width":1.8}})}
+refreshIcons();initPlayer(player);
+function showCatalog(detail){renderCatalog(catalog,detail.blocks);const tracks=detail.blocks.reduce((sum,block)=>sum+(block.tracks?.length||0),0);count.textContent=tracks?detail.blocks.length+" blocos • "+tracks+" faixas":"Nenhuma faixa disponível ainda.";empty.hidden=tracks>0;refreshIcons(catalog);refreshIcons(empty)}
+window.addEventListener("audius:catalog-ready",event=>{showCatalog(event.detail);status.textContent=event.detail.source==="local"?"● catálogo local":"○ preparando catálogo";status.className="sync local"});
+window.addEventListener("audius:catalog-updated",event=>{showCatalog(event.detail);status.textContent=event.detail.updatedBlocks.length?"↻ atualizado silenciosamente":"✓ catálogo atualizado";status.className="sync online"});
+window.addEventListener("audius:catalog-update-error",()=>{status.textContent="● catálogo local • atualização pendente";status.className="sync pending"});
+startApp().catch(error=>{status.textContent="Não foi possível iniciar o catálogo";status.className="sync pending";console.error(error)});
+</script>
+</body>
 </html>
