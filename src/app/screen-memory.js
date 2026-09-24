@@ -34,8 +34,8 @@ export async function restoreLastScreen() {
     const scrollY = Number(saved?.scrollY);
     const savedAt = Number(saved?.savedAt);
 
-    if (!Number.isFinite(scrollY) || scrollY < 1) return;
-    if (Number.isFinite(savedAt) && Date.now() - savedAt > RESTORE_MAX_AGE) return;
+    if (!Number.isFinite(scrollY) || scrollY < 1) return false;
+    if (Number.isFinite(savedAt) && Date.now() - savedAt > RESTORE_MAX_AGE) return false;
 
     restoring = true;
 
@@ -48,8 +48,10 @@ export async function restoreLastScreen() {
         });
       });
     });
+    return true;
   } catch {
     restoring = false;
+    return false;
   }
 }
 
