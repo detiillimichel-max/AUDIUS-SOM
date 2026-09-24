@@ -68,11 +68,21 @@
 import { startApp } from "./src/app/startup.js?v=4";
 import { renderCatalog } from "./src/app/catalog-ui.js?v=4";
 import { initPlayer } from "./src/app/player.js?v=4";
+import { initScreenMemory, restoreLastScreen } from "./src/app/screen-memory.js?v=1";
 const status=document.querySelector("#status"),count=document.querySelector("#catalog-count"),catalog=document.querySelector("#catalog"),empty=document.querySelector("#empty"),player=document.querySelector("#player");
 function refreshIcons(root=document){window.lucide?.createIcons({root,attrs:{"stroke-width":1.8}})}
-refreshIcons();initPlayer(player);
+refreshIcons();initPlayer(player);initScreenMemory();
 function showCatalog(detail){renderCatalog(catalog,detail.blocks);const tracks=detail.blocks.reduce((sum,block)=>sum+(block.tracks?.length||0),0);count.textContent=tracks?detail.blocks.length+" blocos • "+tracks+" faixas":"Nenhuma faixa disponível ainda.";empty.hidden=tracks>0;refreshIcons(catalog);refreshIcons(empty)}
-window.addEventListener("audius:catalog-ready",event=>{showCatalog(event.detail);status.textContent=event.detail.source==="local"?"● catálogo local":"○ preparando catálogo";status.className="sync local"});
+let screenRestored=false;
+window.addEventListener("audius:catalog-ready",event=>{
+  showCatalog(event.detail);
+  status.textContent=event.detail.source==="local"?"● catálogo local":"○ preparando catálogo";
+  status.className="sync local";
+  if(!screenRestored){
+    screenRestored=true;
+    restoreLastScreen();
+  }
+});
 window.addEventListener("audius:catalog-updated",event=>{showCatalog(event.detail);status.textContent=event.detail.updatedBlocks.length?"↻ atualizado silenciosamente":"✓ catálogo atualizado";status.className="sync online"});
 window.addEventListener("audius:catalog-update-error",()=>{status.textContent="● catálogo local • atualização pendente";status.className="sync pending"});
 startApp().catch(error=>{status.textContent="Não foi possível iniciar o catálogo";status.className="sync pending";console.error(error)});
