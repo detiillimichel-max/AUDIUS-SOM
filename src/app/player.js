@@ -1,4 +1,5 @@
 import { addFavorite, isFavorite, removeFavorite } from "../storage/indexeddb.js";
+import { rememberLastTrack } from "./screen-memory.js";
 
 const AUDIO_BASE = "https://api.audius.co/v1";
 
@@ -198,7 +199,9 @@ function schedulePlayerScroll() {
   });
 }
 
-function loadTrack(track, autoplay = true) {
+function loadTrack(track, autoplay = true, options = {}) {
+  const shouldScroll = options.scroll !== false;
+  const shouldLoadAudio = options.loadAudio !== false;
   if (!track?.id) return;
 
   currentTrack = track;
@@ -232,13 +235,15 @@ function loadTrack(track, autoplay = true) {
   closeMenus();
   elements.player.classList.remove("has-error");
   hero.player.classList.remove("has-error");
-  elements.status.textContent = "Conectando ao Audius…";
-  hero.status.textContent = "CONECTANDO";
-  audio.src = streamUrl(track.id);
-  audio.load();
+  elements.status.textContent = autoplay ? "Conectando ao Audius…" : "PRONTO";
+  hero.status.textContent = autoplay ? "CONECTANDO" : "PRONTO";
+  if (shouldLoadAudio) {
+    audio.src = streamUrl(track.id);
+    audio.load();
+  }
   updateFavoriteState();
 
-  if (autoplay) {
+  if (autoplay && shouldLoadAudio) {
     audio.play()
       .then(() => {
         elements.status.textContent = "Reproduzindo";
@@ -249,10 +254,13 @@ function loadTrack(track, autoplay = true) {
         hero.status.textContent = "TOQUE EM PLAY";
         updatePlayingState();
       });
+  } else if (!autoplay) {
+    updatePlayingState();
   }
 
+  rememberLastTrack(track);
   window.dispatchEvent(new CustomEvent("audius:track-loaded", { detail: track }));
-  schedulePlayerScroll();
+  if (shouldScroll) schedulePlayerScroll();
 }
 
 function toggle() {
@@ -334,6 +342,9 @@ export function initPlayer(root) {
   });
 
   window.addEventListener("audius:play-track", event => loadTrack(event.detail, true));
+  window.addEventListener("audius:restore-track", event => {
+    loadTrack(event.detail, false, { scroll: false, loadAudio: false });
+  });
   window.addEventListener("beforeunload", () => audio?.pause());
 
   refreshIcons(root);
