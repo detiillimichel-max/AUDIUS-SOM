@@ -197,10 +197,20 @@ export async function addHistoryEntry(entry) {
   const db = await openAudiusDB();
   const transaction = db.transaction(STORES.HISTORY, "readwrite");
 
-  transaction.objectStore(STORES.HISTORY).add({
+  const store = transaction.objectStore(STORES.HISTORY);
+  store.add({
     ...entry,
     playedAt: entry.playedAt ?? new Date().toISOString()
   });
+
+  // Limite local de segurança: mantém somente as 100 reproduções mais recentes.
+  const all = await requestToPromise(store.getAll());
+  if (all.length > 100) {
+    all
+      .sort((a, b) => new Date(b.playedAt) - new Date(a.playedAt))
+      .slice(100)
+      .forEach(item => store.delete(item.id));
+  }
 
   await transactionToPromise(transaction);
   db.close();
