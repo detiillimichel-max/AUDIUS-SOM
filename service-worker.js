@@ -1,4 +1,4 @@
-const CACHE_NAME = "audius-som-shell-v3";
+const CACHE_NAME = "audius-som-shell-v4";
 
 const APP_SHELL = [
   "./",
